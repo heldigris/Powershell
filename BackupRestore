@@ -1,0 +1,73 @@
+
+https://exchange12rocks.org/2015/05/24/how-to-limit-a-number-of-powershell-jobs-running-simultaneously/
+
+
+#Dynamic Variables
+#Use the same name as the vendors folder.
+$NameOfVendor = "Vendor1"
+
+function EventLogChecker
+{
+param
+(
+    [Parameter(Mandatory)]
+    [string[]]
+    $NameOfVendor
+)
+
+
+#Static Variable
+$script:LogSource = "Restore$NameOfVendor"
+$Script:LogName = "PowershellBackupRestore"
+
+        if([System.Diagnostics.EventLog]::Exists($LogName) -eq $false)
+        {
+
+        Write-Debug "True?"
+        New-EventLog -Source "BackupRestoreGeneral" -LogName "$LogName" 
+
+        }else{Write-debug "Exists!"}
+
+        if([System.Diagnostics.EventLog]::SourceExists("$LogSource") -eq $false)
+        {
+
+        New-EventLog -Source "$LogSource" -LogName $LogName
+
+        }else{Write-debug "Exists!"}
+
+
+
+    Get-EventLog -List | foreach $_ {Write-Debug $_.Log}
+
+    Write-debug "Does source: $LogSource Exist"
+    [System.Diagnostics.EventLog]::SourceExists("$LogSource") | write-debug 
+
+    Write-debug "Does source: BackupRestoreGeneral Exist"
+    [System.Diagnostics.EventLog]::SourceExists("BackupRestoreGeneral") | write-debug 
+
+    Write-debug "Does Log: $LogName Exist"
+    [System.Diagnostics.EventLog]::Exists("$LogName") | write-debug 
+
+}
+
+
+function CMDRUnner($ScriptFiles)
+{
+
+    #cmd /c "F:\Programmering\Powershell\Eventlogger\Vendor1\xd_sx_ds_vs.cmd"
+    Write-Output "hello Worldsy"
+}
+
+
+EventLogChecker $NameOfVendor
+CMDRunner
+
+pause
+Get-EventLog -List | foreach $_ {Write-Debug $_.Log}
+#Cleaning up
+break
+Write-Output "Cleaning up"
+Remove-EventLog -Source "BackupRestoreGeneral"
+Remove-EventLog -Source "$LogSource"
+Remove-EventLog -LogName "$LogName"
+Get-EventLog -List
