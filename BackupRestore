@@ -54,7 +54,7 @@ $Script:LogName = "PowershellBackupRestore"
 function CMDRUnner($ScriptFiles)
 {
 
-    #cmd /c "F:\Programmering\Powershell\Eventlogger\Vendor1\xd_sx_ds_vs.cmd"
+    #cmd /c "PathToCMD"
     Write-Output "hello Worldsy"
 }
 
