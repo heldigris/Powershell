@@ -1,73 +1,77 @@
-
+#"Inspiration"
 https://exchange12rocks.org/2015/05/24/how-to-limit-a-number-of-powershell-jobs-running-simultaneously/
 
 
 #Dynamic Variables
-#Use the same name as the vendors folder.
-$NameOfVendor = "Vendor1"
+
+#Path to executables
+$path = ""
+
 
 function EventLogChecker
 {
-param
-(
-    [Parameter(Mandatory)]
-    [string[]]
-    $NameOfVendor
-)
 
-
-#Static Variable
-$script:LogSource = "Restore$NameOfVendor"
-$Script:LogName = "PowershellBackupRestore"
+    #Static Variable
+    $Script:DefaultSource = "BackupRestoreGeneral"
+    $Script:LogName = "PowershellBackupRestore"
 
         if([System.Diagnostics.EventLog]::Exists($LogName) -eq $false)
         {
 
         Write-Debug "True?"
-        New-EventLog -Source "BackupRestoreGeneral" -LogName "$LogName" 
+        New-EventLog -Source $DefaultSource -LogName "$LogName" 
 
         }else{Write-debug "Exists!"}
 
-        if([System.Diagnostics.EventLog]::SourceExists("$LogSource") -eq $false)
-        {
-
-        New-EventLog -Source "$LogSource" -LogName $LogName
-
-        }else{Write-debug "Exists!"}
 
 
 
     Get-EventLog -List | foreach $_ {Write-Debug $_.Log}
 
-    Write-debug "Does source: $LogSource Exist"
-    [System.Diagnostics.EventLog]::SourceExists("$LogSource") | write-debug 
-
-    Write-debug "Does source: BackupRestoreGeneral Exist"
-    [System.Diagnostics.EventLog]::SourceExists("BackupRestoreGeneral") | write-debug 
+    Write-debug "Does source: $DefaultSource Exist"
+    [System.Diagnostics.EventLog]::SourceExists("$DefaultSource") | write-debug 
 
     Write-debug "Does Log: $LogName Exist"
     [System.Diagnostics.EventLog]::Exists("$LogName") | write-debug 
 
 }
 
+EventLogChecker
 
-function CMDRUnner($ScriptFiles)
+#########################################################################################################
+$maxConcurrentJobs = 2
+
+$FilListe = @(Get-ChildItem $path\* -Recurse -Include *.cmd)
+foreach ($object in $FilListe) 
 {
+    $running = @(Get-Job -State Running)
 
-    #cmd /c "PathToCMD"
-    Write-Output "hello Worldsy"
+    if ($running.Count -ge $maxConcurrentJobs) 
+    {
+        $null = $running | Wait-Job -Any
+    }
+
+    $scriptBlock = 
+    {
+        #Insert the code of your workload here
+        $Speed = measure-command {cmd /c $using:object}
+        $Speed.ToString("hh\:mm\:ss")
+        Write-Output $using:object.fullname
+        Write-Output “Do your work here…”
+    }
+
+    Start-Job -name $object.name -ScriptBlock $ScriptBlock
+    #Start-Sleep -Seconds 3 # not needed but gives some breathing room.
 }
 
 
-EventLogChecker $NameOfVendor
-CMDRunner
+############################################################################################################
 
 pause
 Get-EventLog -List | foreach $_ {Write-Debug $_.Log}
 #Cleaning up
 break
 Write-Output "Cleaning up"
-Remove-EventLog -Source "BackupRestoreGeneral"
-Remove-EventLog -Source "$LogSource"
+Remove-EventLog -Source "$DefaultSource"
 Remove-EventLog -LogName "$LogName"
 Get-EventLog -List
